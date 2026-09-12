@@ -1,0 +1,39 @@
+# Who can decrypt what.
+#
+# Two kinds of recipient, and the distinction is the point:
+#
+#   admin    a person, from their own ssh key. On every rule, so a machine
+#            being gone is never the reason a secret is unreadable.
+#   host     the machine itself, from the ed25519 host key it generated on
+#            first boot. Never leaves that machine.
+#
+# A host recipient is added once the machine exists -- there is no way to
+# encrypt to a key that has not been generated yet. Add one with:
+#
+#   ssh-keyscan <host> | nix run nixpkgs#ssh-to-age
+#   # paste below, then RE-ENCRYPT EVERY AFFECTED FILE:
+#   sops updatekeys secrets/<file>
+#
+# `updatekeys` is per file. Adding a recipient and forgetting one file is a
+# boot failure discovered later, on the machine that cannot read its own secret.
+
+keys:
+  # rb, from ~/.ssh/id_ed25519.pub
+  - &admin_rb age1h0v345m9htskg46cusuet9tkhujkv8x95m5hd4kfnfjn4elpxscq35d709
+
+  # Hosts, added as each machine is built for the first time.
+  # - &host_pi1 age1...
+  # - &host_pi2 age1...
+
+creation_rules:
+  # Per-host secrets live beside nothing else, so one machine's compromise
+  # does not hand over another's.
+  # - path_regex: secrets/pi1\.yaml$
+  #   key_groups: [{ age: [*admin_rb, *host_pi1] }]
+
+  # Fallback: anything under secrets/ is at least encrypted to the admin key,
+  # so a file cannot be created unencrypted by forgetting to add a rule.
+  - path_regex: secrets/.*
+    key_groups:
+      - age:
+          - *admin_rb

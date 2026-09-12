@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Enable with:  git config core.hooksPath .githooks
+#
+# Checks only what is staged. CI checks everything, because this hook can be
+# skipped with --no-verify and a public plaintext commit cannot be unmade.
+set -uo pipefail
+
+# No mapfile: macOS bash 3.2 does not have it, and a hook that crashes is a
+# hook that lets everything through.
+staged=()
+while IFS= read -r line; do staged+=("$line"); done \
+    < <(git diff --cached --name-only --diff-filter=ACM)
+[ "${#staged[@]}" -eq 0 ] && exit 0
+
+exec ./scripts/check-secrets-encrypted.sh "${staged[@]}"

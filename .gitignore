@@ -1,0 +1,30 @@
+# This repository is public. Everything here is a second line of defence behind
+# scripts/check-secrets-encrypted.sh, not a substitute for it.
+
+# Private key material, in every spelling it tends to arrive under.
+*.key
+*.pem
+*.p12
+*.pfx
+id_ed25519
+id_rsa
+id_ecdsa
+ssh_host_*_key
+*_ed25519_key
+age.key
+keys.txt
+
+# ...but the encrypted forms are the whole point of the repo.
+!*.key.enc
+!*.pem.enc
+
+# sops leaves these behind when an edit is interrupted.
+.sops.tmp*
+*.sops.tmp
+
+# Nix and editor noise.
+result
+result-*
+.direnv/
+.envrc.local
+.DS_Store
