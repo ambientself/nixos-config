@@ -125,6 +125,60 @@
     };
   };
 
+  # --- converging -----------------------------------------------------------
+  # comin polls this repository and deploys it. Chosen over system.autoUpgrade
+  # for one disqualifying reason: autoUpgrade resolves a MUTABLE flake ref, and
+  # when the forge cannot be reached Nix falls back to its cached resolution
+  # with only a warning. The unit then builds an older revision, prints
+  # "Finished NixOS Upgrade" and exits zero. A stale deploy that reports success
+  # cannot be caught by OnFailure=, because nothing failed. comin fetches with
+  # its own git implementation and is not exposed to that.
+  #
+  # It builds ON THE BOX, which is only sane because this configuration stays on
+  # the binary cache. If it ever drifts off, comin is the wrong shape -- the
+  # daemon sits on a Pi 4 trying to compile, and the outcome is a thermal
+  # shutdown or an OOM kill. That is the same reason nixos-hardware is absent
+  # above: the guides that recommend this stack usually recommend that module in
+  # the same breath, and the two pieces of advice are incompatible.
+  services.comin = {
+    enable = true;
+    remotes = [
+      {
+        name = "origin";
+        # Anonymous https, no auth block, no deploy key, nothing to rotate or
+        # lose. That is what the public-repo decision bought; the cost is that
+        # the fleet map is public, which is a reconnaissance cost rather than a
+        # secrets one.
+        url = "https://github.com/ambientself/nixos-config.git";
+        poller.period = 60;
+
+        # BOOT, NOT SWITCH, for the unattended branch. The boot path installs
+        # the bootloader and syncs BEFORE touching any running unit, so an
+        # unattended deploy cannot half-restart this box into an unreachable
+        # state. The cost is that a change on main lands at the next reboot.
+        branches.main.operation = "boot";
+
+        # `branches.testing` is deliberately left at its default, which is
+        # testing-${hostname} with `test` semantics. Two reasons: test does not
+        # touch the bootloader, so a power cycle returns the box to its last
+        # good generation -- the closest thing to a safety net that exists,
+        # since no pull tool in this space has automatic rollback. And the
+        # default derives the branch name from the hostname, so this shared
+        # module gives every Pi its own testing branch without naming any host.
+        #
+        # So: push risky work to testing-pi1 and watch it live, merge to main
+        # when it holds.
+      }
+    ];
+
+    # Explicit even though both already default to 1800. There is a long-open
+    # report of an upgrade unit hanging for four days and blocking every other
+    # Nix operation on the box, and on this hardware a wedged rebuild is not
+    # something a headless machine recovers from on its own.
+    evalTimeout = 1800;
+    buildTimeout = 1800;
+  };
+
   # --- housekeeping ---------------------------------------------------------
   nix.settings.experimental-features = [
     "nix-command"

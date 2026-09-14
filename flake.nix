@@ -16,10 +16,19 @@
       # holding two full closures that differ in every path.
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    comin = {
+      url = "github:nlewo/comin";
+      # Same reason, and it matters more here: comin's module builds the comin
+      # package from comin's OWN flake inputs, and its flake tracks nixpkgs
+      # unpinned. Left alone it would pull a second nixpkgs onto a Pi whose
+      # whole design is to hold exactly one.
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
-    { self, nixpkgs, sops-nix }:
+    { self, nixpkgs, sops-nix, comin }:
     let
       # Adding a Pi is one line in `nixosConfigurations` below (tasker-shq.6).
       # Identical nodes get no per-host directory: they share every module and
@@ -31,6 +40,7 @@
           system = "aarch64-linux";
           modules = [
             sops-nix.nixosModules.sops
+            comin.nixosModules.comin
             ./modules/pi.nix
             {
               networking.hostName = name;
