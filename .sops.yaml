@@ -22,14 +22,24 @@ keys:
   - &admin_rb age1h0v345m9htskg46cusuet9tkhujkv8x95m5hd4kfnfjn4elpxscq35d709
 
   # Hosts, added as each machine is built for the first time.
-  # - &host_pi1 age1...
+  # pi1: Raspberry Pi 4, flashed 2026-09-14. Derived from the ed25519 host key
+  # it generated on its own first boot, via `ssh-keyscan | ssh-to-age`. This
+  # identity is only as private as the card: it sits in plaintext on the same
+  # unencrypted filesystem as the secrets it opens, which is why encrypting
+  # here buys a safe-to-push repo and least privilege between processes, and
+  # nothing at rest.
+  - &host_pi1 age104r775xha3r9syf0zelylxjnsu8wcjruuq3x6vwyla8vc5hhry2qv5y27w
   # - &host_pi2 age1...
 
 creation_rules:
   # Per-host secrets live beside nothing else, so one machine's compromise
-  # does not hand over another's.
-  # - path_regex: secrets/pi1\.yaml$
-  #   key_groups: [{ age: [*admin_rb, *host_pi1] }]
+  # does not hand over another's. The admin key is on every rule so a machine
+  # being gone is never the reason a secret is unreadable.
+  - path_regex: secrets/pi1\.yaml$
+    key_groups:
+      - age:
+          - *admin_rb
+          - *host_pi1
 
   # Fallback: anything under secrets/ is at least encrypted to the admin key,
   # so a file cannot be created unencrypted by forgetting to add a rule.
