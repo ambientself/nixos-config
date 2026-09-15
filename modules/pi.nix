@@ -171,6 +171,13 @@
       }
     ];
 
+    # The exporter's default listen_address is the empty string, which means
+    # every interface. Nothing needs it off-box yet, and the firewall is not the
+    # right place to rely on for something that should not be listening widely
+    # in the first place. openFirewall stays false; when a scraper does need it,
+    # that is the knob, not this one.
+    exporter.listen_address = "127.0.0.1";
+
     # Explicit even though both already default to 1800. There is a long-open
     # report of an upgrade unit hanging for four days and blocking every other
     # Nix operation on the box, and on this hardware a wedged rebuild is not
